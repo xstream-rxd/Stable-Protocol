@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$STBL — The Tautological Stablecoin on Radiant</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        stasis: {
+                            bg: '#09090c',
+                            card: '#111116',
+                            border: '#1e1e28',
+                            gold: '#FFD700',
+                            goldHover: '#E6C200',
+                            red: '#E53935',
+                            redGlow: 'rgba(229, 57, 53, 0.4)',
+                            textMuted: '#9a9aA8',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body {
+            background-color: #09090c;
+            color: #ffffff;
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e1e28;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #FFD700;
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.15);
+        }
+
+        .red-glow {
+            box-shadow: 0 0 20px rgba(229, 57, 53, 0.25);
+        }
+
+        .flatline-pulse {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 2px #E53935); }
+            50% { opacity: 1; filter: drop-shadow(0 0 8px #E53935); }
+        }
+
+        .terminal-scroll {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-stasis-gold selection:text-black">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- NAVIGATION BAR -->
+    <nav class="sticky top-0 z-40 bg-stasis-bg/90 backdrop-blur-md border-b border-stasis-border px-4 lg:px-8 py-3 transition-all">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            
+            <!-- Logo + Branding -->
+            <a href="#" class="flex items-center gap-3 group">
+                <!-- Custom SVG $STBL Coin Logo -->
+                <div class="w-10 h-10 relative flex-shrink-0 transition-transform group-hover:scale-105">
+                    <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">
+                        <!-- Outer Gold Bevel -->
+                        <circle cx="50" cy="50" r="46" fill="#111116" stroke="#FFD700" stroke-width="6" />
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#E6C200" stroke-width="1.5" stroke-dasharray="4 2" />
+                        <!-- Deadpan Face Eyes (•  •) -->
+                        <circle cx="36" cy="40" r="4" fill="#FFFFFF" />
+                        <circle cx="64" cy="40" r="4" fill="#FFFFFF" />
+                        <!-- Unbroken Flat Red Line Mouth -->
+                        <line x1="22" y1="58" x2="78" y2="58" stroke="#E53935" stroke-width="5" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-bold text-xl tracking-tight text-white">$STBL</span>
+                        <span class="text-[10px] bg-stasis-gold/20 text-stasis-gold font-mono px-1.5 py-0.5 rounded border border-stasis-gold/30">RADIANT</span>
+                    </div>
+                    <p class="text-xs text-stasis-textMuted -mt-1 font-mono">1 STBL = 1 STBL</p>
+                </div>
+            </a>
+
+            <!-- Nav Links -->
+            <div class="hidden md:flex items-center gap-6 text-sm font-medium text-stasis-textMuted">
+                <a href="#engine" class="hover:text-stasis-gold transition-colors">Stasis Engine</a>
+                <a href="#calculator" class="hover:text-stasis-gold transition-colors">Calculator</a>
+                <a href="#tokenomics" class="hover:text-stasis-gold transition-colors">Tokenomics</a>
+                <a href="#roadmap" class="hover:text-stasis-gold transition-colors">Non-Roadmap</a>
+                <a href="#faq" class="hover:text-stasis-gold transition-colors">FAQ</a>
+                <a href="#license" class="hover:text-stasis-gold transition-colors">License</a>
+            </div>
+
+            <!-- Quick Contract Copy Button in Header -->
+            <div class="flex items-center gap-3">
+                <button onclick="copyContractId()" class="flex items-center gap-2 bg-stasis-card hover:bg-stasis-border border border-stasis-gold/40 text-stasis-gold font-mono text-xs px-3 py-2 rounded-lg transition-all gold-glow">
+                    <i class="ph-bold ph-copy text-sm"></i>
+                    <span class="hidden sm:inline">Contract ID</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow">
+        <!-- HERO SECTION -->
+        <section class="relative pt-12 pb-20 px-4 overflow-hidden border-b border-stasis-border">
+            <!-- Background Ambient Glows -->
+            <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-stasis-gold/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-stasis-red/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="max-w-5xl mx-auto text-center relative z-10">
+                
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 bg-stasis-card border border-stasis-border rounded-full px-4 py-1.5 text-xs text-stasis-gold font-mono mb-8 shadow-inner">
+                    <span class="w-2 h-2 rounded-full bg-stasis-gold animate-ping"></span>
+                    <span>🛡️ Powered by Radiant Blockchain & Pure Tautology</span>
+                </div>
+
+                <!-- Headline -->
+                <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-none mb-6">
+                    Stop Sweeping the Charts.<br>
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-stasis-gold via-white to-stasis-red">
+                        Embrace Absolute Stillness.
+                    </span>
+                </h1>
+
+                <!-- Subheadline -->
+                <p class="text-lg sm:text-xl text-stasis-textMuted max-w-3xl mx-auto mb-8 font-normal leading-relaxed">
+                    The world's first stablecoin unbacked by fiat, unshackled by algorithms, and unbothered by reality. Guaranteed with 100% mathematical precision that <strong class="text-white font-mono">1 $STBL = 1 $STBL</strong> forever.
+                </p>
+
+                <!-- Contract ID Banner -->
+                <div class="max-w-3xl mx-auto mb-10 bg-stasis-card/90 border border-stasis-gold/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl gold-glow">
+                    <div class="flex items-center gap-2 text-left min-w-0 w-full sm:w-auto">
+                        <i class="ph-bold ph-fingerprint text-stasis-gold text-2xl flex-shrink-0"></i>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-mono uppercase tracking-wider text-stasis-textMuted">Radiant Glyph FT Contract ID</p>
+                            <p class="text-xs font-mono text-stasis-gold font-semibold truncate">ab977c3ca17f43792d2c62389bdb06956177199e7286e0cb4b5c540676b342fb00000001</p>
+                        </div>
+                    </div>
+                    <button onclick="copyContractId()" class="w-full sm:w-auto bg-stasis-gold hover:bg-stasis-goldHover text-black font-bold font-mono text-xs px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 flex-shrink-0">
+                        <i class="ph-bold ph-copy text-base"></i>
+                        <span>Copy Contract ID</span>
+                    </button>
+                </div>
+
+                <!-- Hero Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+                    <button onclick="openTautologyModal()" class="w-full sm:w-auto bg-stasis-gold hover:bg-stasis-goldHover text-black font-bold px-8 py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-brackets-curly text-lg"></i>
+                        <span>Read Tautology Paper</span>
+                    </button>
+                    <a href="#engine" class="w-full sm:w-auto bg-stasis-card hover:bg-stasis-border border border-stasis-border text-white font-semibold px-8 py-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-chart-line text-lg text-stasis-gold"></i>
+                        <span>Explore Stasis Engine</span>
+                    </a>
+                </div>
+
+                <!-- LIVE STASIS TICKER BAR -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-stasis-card border border-stasis-border rounded-2xl p-4 shadow-2xl font-mono text-left">
+                    <div class="p-3 bg-stasis-bg/60 rounded-xl border border-stasis-border/50">
+                        <p class="text-[11px] text-stasis-textMuted uppercase tracking-wider mb-1">Current Price</p>
+                        <p class="text-lg font-bold text-stasis-gold flex items-center gap-1">
+                            <span>1 $STBL</span>
+                        </p>
+                    </div>
+                    <div class="p-3 bg-stasis-bg/60 rounded-xl border border-stasis-border/50">
+                        <p class="text-[11px] text-stasis-textMuted uppercase tracking-wider mb-1">Total Supply</p>
+                        <p class="text-lg font-bold text-white flex items-center gap-1">
+                            <span>8,888,888</span>
+                        </p>
+                    </div>
+                    <div class="p-3 bg-stasis-bg/60 rounded-xl border border-stasis-border/50">
+                        <p class="text-[11px] text-stasis-textMuted uppercase tracking-wider mb-1">24h Volatility</p>
+                        <p class="text-lg font-bold text-stasis-red flex items-center gap-1">
+                            <span>0.0000%</span>
+                        </p>
+                    </div>
+                    <div class="p-3 bg-stasis-bg/60 rounded-xl border border-stasis-border/50">
+                        <p class="text-[11px] text-stasis-textMuted uppercase tracking-wider mb-1">Panic Level</p>
+                        <p class="text-lg font-bold text-green-400 flex items-center gap-1">
+                            <i class="ph-bold ph-smiley-meh"></i>
+                            <span>ZERO</span>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- MANIFESTO & LIVE STASIS ENGINE -->
+        <section id="engine" class="py-20 px-4 max-w-7xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-xs font-mono text-stasis-gold uppercase tracking-widest mb-2">// REAL-TIME METRIC ENGINE</h2>
+                <h3 class="text-3xl sm:text-4xl font-bold text-white">The Eternal Flatline Chart</h3>
+                <p class="text-stasis-textMuted mt-2 max-w-2xl mx-auto">Observe the live price performance of $STBL. Test our protocol against extreme macroeconomic stress tests using the simulator below.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Chart Canvas Container (7 cols) -->
+                <div class="lg:col-span-7 bg-stasis-card border border-stasis-border rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[420px]">
+                    <div class="flex items-center justify-between mb-4 border-b border-stasis-border/60 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-stasis-red flatline-pulse"></span>
+                            <span class="font-mono text-sm font-semibold text-white">STBL / ALL_ASSETS</span>
+                        </div>
+                        <span class="text-xs font-mono text-stasis-gold bg-stasis-gold/10 px-2.5 py-1 rounded border border-stasis-gold/20">LIVE STASIS ACTIVE</span>
+                    </div>
+
+                    <!-- Canvas for Flatline Render -->
+                    <div class="relative w-full h-[280px] bg-stasis-bg/80 rounded-xl overflow-hidden border border-stasis-border/40">
+                        <canvas id="stasisChartCanvas" class="w-full h-full block"></canvas>
+                        
+                        <!-- Overlay Watermark -->
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                            <span class="text-8xl font-black font-mono text-stasis-gold">1:1</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex items-center justify-between text-xs font-mono text-stasis-textMuted">
+                        <span>Timeframe: Eternal</span>
+                        <span>Standard Deviation: 0.00</span>
+                        <span class="text-stasis-gold">Status: Invariant</span>
+                    </div>
+                </div>
+
+                <!-- Market Event Simulator Panel (5 cols) -->
+                <div class="lg:col-span-5 bg-stasis-card border border-stasis-border rounded-2xl p-5 flex flex-col h-full justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 mb-4 border-b border-stasis-border/60 pb-3">
+                            <i class="ph-bold ph-terminal-window text-stasis-gold text-xl"></i>
+                            <h4 class="font-mono text-sm font-bold text-white uppercase">Market Event Simulator</h4>
+                        </div>
+                        <p class="text-xs text-stasis-textMuted mb-4">Select an apocalyptic financial event to test $STBL's peg stability engine in real-time.</p>
+
+                        <!-- Quick Event Buttons -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                            <button onclick="runSimulator('Fed Raises Interest Rates to 25%')" class="text-left text-xs bg-stasis-bg hover:bg-stasis-border p-2.5 rounded-lg border border-stasis-border transition-colors text-stasis-textMuted hover:text-white">
+                                📉 Fed Hikes Rates to 25%
+                            </button>
+                            <button onclick="runSimulator('Global Crypto Crash -99.9%')" class="text-left text-xs bg-stasis-bg hover:bg-stasis-border p-2.5 rounded-lg border border-stasis-border transition-colors text-stasis-textMuted hover:text-white">
+                                💥 Crypto Crash -99.9%
+                            </button>
+                            <button onclick="runSimulator('Meteor Hits Wall Street Exchange')" class="text-left text-xs bg-stasis-bg hover:bg-stasis-border p-2.5 rounded-lg border border-stasis-border transition-colors text-stasis-textMuted hover:text-white">
+                                ☄️ Meteor Hits Wall St.
+                            </button>
+                            <button onclick="runSimulator('Alien Hegemony Seizes US Treasury')" class="text-left text-xs bg-stasis-bg hover:bg-stasis-border p-2.5 rounded-lg border border-stasis-border transition-colors text-stasis-textMuted hover:text-white">
+                                🛸 Alien Hegemony Invasion
+                            </button>
+                        </div>
+
+                        <!-- Custom Event Input -->
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="customEventInput" placeholder="Enter custom disaster scenario..." class="bg-stasis-bg border border-stasis-border rounded-lg px-3 py-2 text-xs font-mono text-white w-full focus:outline-none focus:border-stasis-gold">
+                            <button onclick="runCustomSimulation()" class="bg-stasis-gold hover:bg-stasis-goldHover text-black font-bold text-xs px-3 py-2 rounded-lg flex-shrink-0">
+                                Simulate
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Simulator Output Terminal -->
+                    <div class="bg-stasis-bg border border-stasis-border rounded-xl p-3 font-mono text-xs text-green-400 terminal-scroll">
+                        <div class="text-stasis-textMuted text-[10px] mb-2">// STASIS PROTOCOL CONSOLE</div>
+                        <div id="terminalLog" class="space-y-1.5">
+                            <p class="text-stasis-textMuted">> Protocol loaded successfully.</p>
+                            <p class="text-stasis-textMuted">> Monitoring Radiant ledger state...</p>
+                            <p class="text-stasis-gold">> Contract: ab977c3ca17f4...42fb00000001</p>
+                            <p class="text-stasis-gold">> 1 $STBL = 1 $STBL. All systems invariant.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- INTERACTIVE STASIS CALCULATOR -->
+        <section id="calculator" class="py-20 px-4 bg-stasis-card/50 border-y border-stasis-border">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-xs font-mono text-stasis-gold uppercase tracking-widest mb-2">// YIELD PRESERVATION ENGINE</h2>
+                    <h3 class="text-3xl sm:text-4xl font-bold text-white">Interactive Stasis Calculator</h3>
+                    <p class="text-stasis-textMuted mt-2 max-w-xl mx-auto">Calculate your future holding returns across any timeframe. Experience the mathematical peace of 0% volatility.</p>
+                </div>
+
+                <div class="bg-stasis-card border border-stasis-border rounded-2xl p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center shadow-2xl">
+                    
+                    <!-- Left: Inputs -->
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-mono text-stasis-textMuted mb-2 uppercase">Amount of $STBL Held</label>
+                            <div class="relative">
+                                <input type="number" id="calcAmount" value="88888" min="1" oninput="updateCalculator()" class="w-full bg-stasis-bg border border-stasis-border rounded-xl px-4 py-3 text-white font-mono font-bold text-lg focus:outline-none focus:border-stasis-gold">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono text-stasis-gold">STBL</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs font-mono text-stasis-textMuted uppercase">Holding Period</label>
+                                <span id="calcYearsLabel" class="text-xs font-mono text-stasis-gold font-bold">10 Years</span>
+                            </div>
+                            <input type="range" id="calcYears" min="1" max="50" value="10" oninput="updateCalculator()" class="w-full accent-stasis-gold bg-stasis-bg h-2 rounded-lg cursor-pointer">
+                            <div class="flex justify-between text-[10px] text-stasis-textMuted font-mono mt-1">
+                                <span>1 Year</span>
+                                <span>25 Years</span>
+                                <span>50 Years (Heat Death)</span>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-stasis-bg/80 border border-stasis-border rounded-xl space-y-2 font-mono text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-stasis-textMuted">Compounding Frequency:</span>
+                                <span class="text-white">Never</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-stasis-textMuted">Risk Factor:</span>
+                                <span class="text-green-400">0.00%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-stasis-textMuted">De-peg Risk:</span>
+                                <span class="text-stasis-gold">Impossible</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Results Card -->
+                    <div class="bg-gradient-to-br from-stasis-bg to-stasis-card border border-stasis-gold/30 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between h-full gold-glow">
+                        <div>
+                            <div class="text-xs font-mono text-stasis-gold uppercase tracking-wider mb-1">Projected Balance</div>
+                            <div id="calcResultBalance" class="text-4xl sm:text-5xl font-extrabold text-white font-mono tracking-tight mb-6">
+                                88,888 <span class="text-lg text-stasis-gold">STBL</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 border-t border-stasis-border/80 pt-4 mb-6">
+                                <div>
+                                    <p class="text-[11px] text-stasis-textMuted font-mono uppercase">Estimated Yield</p>
+                                    <p class="text-lg font-bold text-stasis-gold font-mono">0.00 STBL</p>
+                                </div>
+                                <div>
+                                    <p class="text-[11px] text-stasis-textMuted font-mono uppercase">Anxiety Level</p>
+                                    <p class="text-lg font-bold text-green-400 font-mono">-100%</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-stasis-bg/90 border border-stasis-border p-3 rounded-xl">
+                            <p class="text-xs text-stasis-textMuted font-mono leading-relaxed">
+                                💡 <strong class="text-white">Stasis Guarantee:</strong> In <span id="calcYearsText">10</span> years, your portfolio will still hold exactly <span id="calcAmountText">88,888</span> STBL. You have successfully preserved your financial sanity.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- TOKENOMICS SECTION -->
+        <section id="tokenomics" class="py-20 px-4 max-w-7xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-xs font-mono text-stasis-gold uppercase tracking-widest mb-2">// IMMUTABLE SPECIFICATIONS</h2>
+                <h3 class="text-3xl sm:text-4xl font-bold text-white">Tokenomics & Contract Information</h3>
+                <p class="text-stasis-textMuted mt-2 max-w-xl mx-auto">Coded directly as a Glyph FT token on Radiant with absolute fixed metrics.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-stasis-card border border-stasis-border rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-xl bg-stasis-gold/10 border border-stasis-gold/30 flex items-center justify-center text-stasis-gold text-xl mb-4">
+                        <i class="ph-bold ph-coins"></i>
+                    </div>
+                    <p class="text-xs font-mono text-stasis-textMuted uppercase">Total Minted Supply</p>
+                    <p class="text-3xl font-extrabold text-white font-mono mt-1">8,888,888</p>
+                    <p class="text-xs text-stasis-textMuted mt-2 font-mono">$STBL Token Cap</p>
+                </div>
+
+                <div class="bg-stasis-card border border-stasis-border rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-xl bg-stasis-gold/10 border border-stasis-gold/30 flex items-center justify-center text-stasis-gold text-xl mb-4">
+                        <i class="ph-bold ph-shield-check"></i>
+                    </div>
+                    <p class="text-xs font-mono text-stasis-textMuted uppercase">Backing Reserve</p>
+                    <p class="text-3xl font-extrabold text-stasis-gold font-mono mt-1">100% Tautology</p>
+                    <p class="text-xs text-stasis-textMuted mt-2 font-mono">Pure Logic & Vibes</p>
+                </div>
+
+                <div class="bg-stasis-card border border-stasis-border rounded-2xl p-6">
+                    <div class="w-10 h-10 rounded-xl bg-stasis-gold/10 border border-stasis-gold/30 flex items-center justify-center text-stasis-gold text-xl mb-4">
+                        <i class="ph-bold ph-trend-down"></i>
+                    </div>
+                    <p class="text-xs font-mono text-stasis-textMuted uppercase">Lifetime Yield APY</p>
+                    <p class="text-3xl font-extrabold text-white font-mono mt-1">0.00%</p>
+                    <p class="text-xs text-stasis-textMuted mt-2 font-mono">Zero Exploits Guaranteed</p>
+                </div>
+            </div>
+
+            <!-- Full Contract Details Card -->
+            <div class="bg-stasis-card border border-stasis-gold/30 rounded-2xl p-6 sm:p-8 gold-glow">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <span class="text-xs font-mono text-stasis-gold uppercase tracking-widest">// RADIANT GLYPH FT CONTRACT ID</span>
+                        <h4 class="text-xl font-bold text-white mt-1">Official Token Contract Address</h4>
+                        <p class="text-xs font-mono text-stasis-gold mt-2 bg-stasis-bg p-3 rounded-xl border border-stasis-border break-all selection:bg-stasis-gold selection:text-black">
+                            ab977c3ca17f43792d2c62389bdb06956177199e7286e0cb4b5c540676b342fb00000001
+                        </p>
+                    </div>
+                    <button onclick="copyContractId()" class="bg-stasis-gold hover:bg-stasis-goldHover text-black font-bold font-mono px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 flex-shrink-0">
+                        <i class="ph-bold ph-copy text-lg"></i>
+                        <span>Copy Contract ID</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- THE NON-ROADMAP -->
+        <section id="roadmap" class="py-20 px-4 max-w-7xl mx-auto border-t border-stasis-border">
+            <div class="text-center mb-16">
+                <h2 class="text-xs font-mono text-stasis-gold uppercase tracking-widest mb-2">// PROTOCOL EVOLUTION</h2>
+                <h3 class="text-3xl sm:text-4xl font-bold text-white">The Non-Roadmap</h3>
+                <p class="text-stasis-textMuted mt-2 max-w-xl mx-auto">Unlike other crypto projects that continuously break things with updates, $STBL promises absolute feature freeze forever.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+                
+                <!-- Phase 1: Deployment -->
+                <div class="bg-stasis-card border border-stasis-gold/40 rounded-2xl p-6 relative flex flex-col justify-between hover:border-stasis-gold transition-all">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-stasis-gold/10 border border-stasis-gold/30 flex items-center justify-center text-stasis-gold font-mono font-bold mb-4">
+                            01
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-2">Phase 1: Deployment</h4>
+                        <p class="text-xs text-stasis-textMuted leading-relaxed mb-4">
+                            Total minted supply will be 8888888 $STBL
+                        </p>
+                    </div>
+                    <span class="text-[10px] font-mono text-stasis-gold bg-stasis-gold/10 px-2 py-1 rounded w-max border border-stasis-gold/20">STATUS: COMPLETE</span>
+                </div>
+
+                <!-- Phase B: Equilibrium -->
+                <div class="bg-stasis-card border border-stasis-border rounded-2xl p-6 relative flex flex-col justify-between hover:border-stasis-border/80 transition-all">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-stasis-bg border border-stasis-border flex items-center justify-center text-stasis-textMuted font-mono font-bold mb-4">
+                            0B
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-2">Phase B: Equilibrium</h4>
+                        <p class="text-xs text-stasis-textMuted leading-relaxed mb-4">
+                            Maintain absolute stillness. Refuse to add features or upgrades
+                        </p>
+                    </div>
+                    <span class="text-[10px] font-mono text-stasis-textMuted bg-stasis-bg px-2 py-1 rounded w-max border border-stasis-border">STATUS: IN PROGRESS</span>
+                </div>
+
+                <!-- Phase : Universal Stasis -->
+                <div class="bg-stasis-card border border-stasis-border rounded-2xl p-6 relative flex flex-col justify-between hover:border-stasis-border/80 transition-all">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-stasis-bg border border-stasis-border flex items-center justify-center text-stasis-textMuted font-mono font-bold mb-4">
+                            ∞
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-2">Phase : Universal Stasis</h4>
+                        <p class="text-xs text-stasis-textMuted leading-relaxed mb-4">
+                            Watch global financial systems fluctuate while $STBL remains unchanged.
+                        </p>
+                    </div>
+                    <span class="text-[10px] font-mono text-stasis-textMuted bg-stasis-bg px-2 py-1 rounded w-max border border-stasis-border">STATUS: PERMANENT</span>
+                </div>
+
+                <!-- Super-Ultra-Hyper-Turbo-Mega-Blah Phase -->
+                <div class="bg-stasis-card border border-stasis-red/40 rounded-2xl p-6 relative flex flex-col justify-between hover:border-stasis-red transition-all">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-stasis-red/10 border border-stasis-red/30 flex items-center justify-center text-stasis-red font-mono font-bold mb-4">
+                            ⚡
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-2">Super-Ultra-Hyper-Turbo-Mega-Blah Phase</h4>
+                        <p class="text-xs text-stasis-textMuted leading-relaxed mb-4">
+                            Atoms stop vibrating. Galaxies collapse into void. 1 $STBL is still 1 $STBL
+                        </p>
+                    </div>
+                    <span class="text-[10px] font-mono text-stasis-red bg-stasis-red/10 px-2 py-1 rounded w-max border border-stasis-red/20">STATUS: ETERNAL</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- FAQ ACCORDION -->
+        <section id="faq" class="py-20 px-4 max-w-4xl mx-auto border-t border-stasis-border">
+            <div class="text-center mb-12">
+                <h2 class="text-xs font-mono text-stasis-gold uppercase tracking-widest mb-2">// FREQUENTLY IGNORED QUESTIONS</h2>
+                <h3 class="text-3xl sm:text-4xl font-bold text-white">Frequently Asked Questions</h3>
+            </div>
+
+            <div class="space-y-4">
+                
+                <!-- FAQ Item 1 -->
+                <div class="bg-stasis-card border border-stasis-border rounded-xl overflow-hidden transition-all">
+                    <button onclick="toggleFaq(this)" class="w-full text-left px-6 py-4 flex items-center justify-between gap-4 focus:outline-none">
+                        <span class="font-semibold text-white text-sm sm:text-base">What is $STBL backed by?</span>
+                        <i class="ph-bold ph-caret-down text-stasis-gold transition-transform"></i>
+                    </button>
+                    <div class="px-6 pb-4 hidden text-xs sm:text-sm text-stasis-textMuted leading-relaxed border-t border-stasis-border/40 pt-3">
+                        $STBL is backed 100% by the undeniable tautological truth that it exists. Fiat-backed coins depend on central bank promises; algorithmic coins rely on fragile game theory. $STBL relies on formal logic: 1 STBL = 1 STBL.
+                    </div>
+                </div>
+
+                <!-- FAQ Item 2 -->
+                <div class="bg-stasis-card border border-stasis-border rounded-xl overflow-hidden transition-all">
+                    <button onclick="toggleFaq(this)" class="w-full text-left px-6 py-4 flex items-center justify-between gap-4 focus:outline-none">
+                        <span class="font-semibold text-white text-sm sm:text-base">What is the total supply of $STBL?</span>
+                        <i class="ph-bold ph-caret-down text-stasis-gold transition-transform"></i>
+                    </button>
+                    <div class="px-6 pb-4 hidden text-xs sm:text-sm text-stasis-textMuted leading-relaxed border-t border-stasis-border/40 pt-3">
+                        The total supply is strictly capped at 8,888,888 $STBL, minted as a Glyph FT on the Radiant blockchain under Contract ID <code class="text-stasis-gold font-mono">ab977c3ca17f43792d2c62389bdb06956177199e7286e0cb4b5c540676b342fb00000001</code>.
+                    </div>
+                </div>
+
+                <!-- FAQ Item 3 -->
+                <div class="bg-stasis-card border border-stasis-border rounded-xl overflow-hidden transition-all">
+                    <button onclick="toggleFaq(this)" class="w-full text-left px-6 py-4 flex items-center justify-between gap-4 focus:outline-none">
+                        <span class="font-semibold text-white text-sm sm:text-base">Is $STBL pegged to the US Dollar ($1.00)?</span>
+                        <i class="ph-bold ph-caret-down text-stasis-gold transition-transform"></i>
+                    </button>
+                    <div class="px-6 pb-4 hidden text-xs sm:text-sm text-stasis-textMuted leading-relaxed border-t border-stasis-border/40 pt-3">
+                        Absolutely not. The US Dollar fluctuates due to central bank inflation. $STBL refuses to align itself with such a volatile, declining asset.
+                    </div>
+                </div>
+
+                <!-- FAQ Item 4 -->
+                <div class="bg-stasis-card border border-stasis-border rounded-xl overflow-hidden transition-all">
+                    <button onclick="toggleFaq(this)" class="w-full text-left px-6 py-4 flex items-center justify-between gap-4 focus:outline-none">
+                        <span class="font-semibold text-white text-sm sm:text-base">How do I earn yield or staking rewards?</span>
+                        <i class="ph-bold ph-caret-down text-stasis-gold transition-transform"></i>
+                    </button>
+                    <div class="px-6 pb-4 hidden text-xs sm:text-sm text-stasis-textMuted leading-relaxed border-t border-stasis-border/40 pt-3">
+                        You don't. Yield implies risk. $STBL guarantees a lifetime 0.00% APY, ensuring complete immunity from liquidation cascades and smart contract exploits.
+                    </div>
+                </div>
+
+                <!-- FAQ Item 5 -->
+                <div class="bg-stasis-card border border-stasis-border rounded-xl overflow-hidden transition-all">
+                    <button onclick="toggleFaq(this)" class="w-full text-left px-6 py-4 flex items-center justify-between gap-4 focus:outline-none">
+                        <span class="font-semibold text-white text-sm sm:text-base">What happens if the crypto market crashes 90% tomorrow?</span>
+                        <i class="ph-bold ph-caret-down text-stasis-gold transition-transform"></i>
+                    </button>
+                    <div class="px-6 pb-4 hidden text-xs sm:text-sm text-stasis-textMuted leading-relaxed border-t border-stasis-border/40 pt-3">
+                        You will still have 100% of your $STBL. In $STBL terms, your net worth has remained completely unchanged. You can sleep peacefully through any market panic.
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- LICENSE & DISCLAIMER TAB CONTAINER -->
+        <section id="license" class="py-20 px-4 max-w-5xl mx-auto">
+            <div class="bg-stasis-card border border-stasis-border rounded-2xl p-6 sm:p-8 shadow-2xl">
+                
+                <!-- Tab Controls -->
+                <div class="flex flex-wrap items-center justify-between border-b border-stasis-border pb-4 mb-6 gap-4">
+                    <div class="flex gap-2 bg-stasis-bg p-1 rounded-xl border border-stasis-border">
+                        <button id="tabLicenseBtn" onclick="switchTab('license')" class="px-4 py-2 rounded-lg text-xs font-mono font-bold text-stasis-gold bg-stasis-card border border-stasis-gold/30">
+                            ATPL v1.0 License
+                        </button>
+                        <button id="tabDisclaimerBtn" onclick="switchTab('disclaimer')" class="px-4 py-2 rounded-lg text-xs font-mono text-stasis-textMuted hover:text-white">
+                            Legal Disclaimer
+                        </button>
+                    </div>
+
+                    <button onclick="copyActiveTabText()" class="flex items-center gap-2 text-xs font-mono bg-stasis-bg hover:bg-stasis-border border border-stasis-border px-3 py-2 rounded-lg text-stasis-textMuted hover:text-white transition-colors">
+                        <i class="ph-bold ph-copy text-stasis-gold"></i>
+                        <span>Copy Text</span>
+                    </button>
+                </div>
+
+                <!-- License Content Panel -->
+                <div id="licenseTabContent" class="font-mono text-xs text-stasis-textMuted space-y-4 leading-relaxed bg-stasis-bg/80 p-5 rounded-xl border border-stasis-border max-h-96 overflow-y-auto">
+                    <h4 class="text-white font-bold text-sm">THE ABSOLUTE TAUTOLOGY PUBLIC LICENSE (ATPL v1.0)</h4>
+                    <p class="text-stasis-gold">// Preamble</p>
+                    <p>This License governs the issuance, possession, non-use, and contemplation of the $STBL token on the Radiant blockchain. By holding or observing $STBL, you voluntarily submit to the immutable laws of logic and financial stasis.</p>
+                    
+                    <p class="text-white font-semibold">1. The Tautological Identity Principle</p>
+                    <p>The Licensee acknowledges and agrees that: 1 STBL = 1 STBL. Any attempt to evaluate $STBL in terms of USD, EUR, Gold, or CPI is considered a fundamental failure of formal logic.</p>
+                    
+                    <p class="text-white font-semibold">2. Grant of Non-Rights</p>
+                    <p>The protocol grants the right to hold $STBL in a wallet, observe that its balance remains unchanged, and experience zero emotional turbulence.</p>
+                    
+                    <p class="text-white font-semibold">3. Prohibition of Expectations</p>
+                    <p>The Licensee is strictly prohibited from expecting yield (0.00% APY forever), capital appreciation, or external utility beyond existing as a digital ledger entry.</p>
+
+                    <p class="text-white font-semibold">4. Waiver of Right to Panic</p>
+                    <p>The Licensee irrevocably waives the right to engage in panic selling or emotional distress. In global market crashes, $STBL holders remain 100% unaffected in $STBL terms.</p>
+                </div>
+
+                <!-- Disclaimer Content Panel -->
+                <div id="disclaimerTabContent" class="hidden font-mono text-xs text-stasis-textMuted space-y-4 leading-relaxed bg-stasis-bg/80 p-5 rounded-xl border border-stasis-border max-h-96 overflow-y-auto">
+                    <h4 class="text-white font-bold text-sm">OFFICIAL LEGAL DISCLAIMER & DISCLOSURE</h4>
+                    
+                    <p class="text-stasis-gold">// 1. Not Financial Advice</p>
+                    <p>Nothing on this website, whitepaper, or smart contract metadata constitutes financial, legal, or psychological advice. Holding $STBL is a purely philosophical exercise in digital minimalism.</p>
+
+                    <p class="text-stasis-gold">// 2. Disclaimer of Warranties</p>
+                    <p>$STBL IS PROVIDED "AS IS" AND "AS IT EXISTS", WITHOUT WARRANTY OF ANY KIND. THE CREATORS EXPRESSLY DISCLAIM ALL WARRANTIES OF MERCHANTABILITY, FITNESS FOR PURPOSE, OR FUTURE PROFITABILITY.</p>
+
+                    <p class="text-stasis-gold">// 3. Limitation of Liability</p>
+                    <p>IN NO EVENT SHALL THE CREATORS OR RADIANT NETWORK PARTICIPANTS BE LIABLE FOR ANY CLAIM OR DAMAGES ARISING FROM HELD $STBL. YOU CANNOT SUE FOR LOSING MONEY, BECAUSE WE PROMISED YOU NOTHING AND DELIVERED EXACTLY THAT.</p>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-stasis-card border-t border-stasis-border py-10 px-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8">
+                    <svg viewBox="0 0 100 100" class="w-full h-full">
+                        <circle cx="50" cy="50" r="46" fill="#111116" stroke="#FFD700" stroke-width="6" />
+                        <circle cx="36" cy="40" r="4" fill="#FFFFFF" />
+                        <circle cx="64" cy="40" r="4" fill="#FFFFFF" />
+                        <line x1="22" y1="58" x2="78" y2="58" stroke="#E53935" stroke-width="5" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <div>
+                    <span class="font-bold text-white text-sm">$STBL Protocol</span>
+                    <p class="text-[11px] text-stasis-textMuted font-mono truncate max-w-xs">
+                        ID: ab977c3ca17f43792d2c62389bdb06956177199e7286e0cb4b5c540676b342fb00000001
+                    </p>
+                </div>
+            </div>
+
+            <div class="text-center md:text-right text-xs text-stasis-textMuted font-mono space-y-1">
+                <p>© 2026 $STBL Foundation. All rights unreserved.</p>
+                <p class="text-[10px] text-stasis-textMuted/60">Built on Radiant Blockchain • Unbacked • Unshackled • Unbothered</p>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- MODAL: TAUTOLOGY WHITEPAPER -->
+    <div id="tautologyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-stasis-card border border-stasis-gold/40 rounded-2xl max-w-2xl w-full p-6 sm:p-8 relative gold-glow max-h-[90vh] overflow-y-auto">
+            <button onclick="closeTautologyModal()" class="absolute top-4 right-4 text-stasis-textMuted hover:text-white text-xl">
+                <i class="ph-bold ph-x"></i>
+            </button>
+
+            <div class="flex items-center gap-2 text-stasis-gold font-mono text-xs uppercase mb-2">
+                <span>// TAUTOLOGY PAPER ABSTRACT</span>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-4">The 1:1 Equivalence Theorem</h3>
+
+            <div class="space-y-4 font-mono text-xs text-stasis-textMuted leading-relaxed">
+                <p>Traditional stablecoins fail because they attempt to bridge two fundamentally incompatible universes: digital state machines and central bank inflation.</p>
+
+                <!-- Mathematical Equation Block -->
+                <div class="bg-stasis-bg p-4 rounded-xl border border-stasis-border text-center text-white my-4 space-y-3">
+                    <p class="text-stasis-gold font-bold text-sm">Differential Identity of Stasis:</p>
+                    <div class="text-lg text-stasis-gold font-bold">
+                        ∂V_STBL / ∂P = 0
+                    </div>
+                    <p class="text-[10px] text-stasis-textMuted">Where Value (V) with respect to Market Panic (P) remains invariant.</p>
+                </div>
+
+                <div class="bg-stasis-bg p-4 rounded-xl border border-stasis-border text-center text-white my-4 space-y-3">
+                    <p class="text-stasis-gold font-bold text-sm">Terminal Boundary Condition:</p>
+                    <div class="text-lg text-stasis-gold font-bold">
+                        lim (t → ∞) P_STBL(t) ≡ 1 STBL
+                    </div>
+                    <p class="text-[10px] text-stasis-textMuted">As time approaches infinity, price remains identically 1 STBL.</p>
+                </div>
+
+                <p>$STBL solves de-pegging risk by severing ties with third-party fiat currencies entirely. Total supply is 8,888,888 $STBL, minted under Contract ID <code class="text-stasis-gold">ab977c3ca17f43792d2c62389bdb06956177199e7286e0cb4b5c540676b342fb00000001</code>.</p>
+            </div>
+
+            <div class="mt-6 text-right">
+                <button onclick="closeTautologyModal()" class="bg-stasis-gold hover:bg-stasis-goldHover text-black font-bold px-5 py-2 rounded-lg text-xs">
+                    Understood (Stasis Maintained)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const CONTRACT_ID = "ab977c3ca17f43792d2c62389bdb06956177199e7286e0cb4b5c540676b342fb00000001";
+        let currentActiveTab = 'license';
+
+        const canvas = document.getElementById('stasisChartCanvas');
+        const ctx = canvas.getContext('2d');
+        let scanX = 0;
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'bg-stasis-card border border-stasis-gold/50 text-white font-mono text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 pointer-events-auto gold-glow transition-all transform translate-y-2 opacity-0';
+            toast.innerHTML = `<i class="ph-bold ph-check-circle text-stasis-gold text-base"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function copyContractId() {
+            const temp = document.createElement('textarea');
+            temp.value = CONTRACT_ID;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+
+            showToast("Contract ID copied to clipboard!");
+            runSimulator("Copied Contract ID to clipboard");
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            drawChart();
+        }
+
+        function drawChart() {
+            if (!ctx) return;
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerY = h / 2;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Subtle Grid
+            ctx.strokeStyle = '#1e1e28';
+            ctx.lineWidth = 1;
+
+            for (let x = 0; x < w; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+
+            for (let y = 0; y < h; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            // Flat Red Line
+            ctx.strokeStyle = '#E53935';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#E53935';
+            ctx.shadowBlur = 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(w, centerY);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            // Moving Pulse Light
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(scanX, centerY, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            scanX += 2;
+            if (scanX > w) scanX = 0;
+        }
+
+        function animateChart() {
+            drawChart();
+            requestAnimationFrame(animateChart);
+        }
+
+        function runSimulator(eventName) {
+            const terminal = document.getElementById('terminalLog');
+            const p1 = document.createElement('p');
+            p1.className = 'text-stasis-gold mt-2';
+            p1.textContent = `> SIMULATING EVENT: "${eventName}"`;
+
+            const p2 = document.createElement('p');
+            p2.className = 'text-green-400';
+            p2.textContent = `> RESULT: Impact 0.0000%. 1 $STBL = 1 $STBL. Stasis intact.`;
+
+            terminal.appendChild(p1);
+            terminal.appendChild(p2);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function runCustomSimulation() {
+            const input = document.getElementById('customEventInput');
+            if (input.value.trim() !== "") {
+                runSimulator(input.value.trim());
+                input.value = "";
+            }
+        }
+
+        function updateCalculator() {
+            const amountInput = document.getElementById('calcAmount').value || 0;
+            const yearsInput = document.getElementById('calcYears').value;
+
+            document.getElementById('calcYearsLabel').textContent = `${yearsInput} Years`;
+            document.getElementById('calcYearsText').textContent = yearsInput;
+            document.getElementById('calcAmountText').textContent = Number(amountInput).toLocaleString();
+
+            document.getElementById('calcResultBalance').innerHTML = `${Number(amountInput).toLocaleString()} <span class="text-lg text-stasis-gold">STBL</span>`;
+        }
+
+        function openTautologyModal() {
+            document.getElementById('tautologyModal').classList.remove('hidden');
+        }
+        function closeTautologyModal() {
+            document.getElementById('tautologyModal').classList.add('hidden');
+        }
+
+        function toggleFaq(button) {
+            const content = button.nextElementSibling;
+            const icon = button.querySelector('i');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function switchTab(tab) {
+            currentActiveTab = tab;
+            const licenseBtn = document.getElementById('tabLicenseBtn');
+            const disclaimerBtn = document.getElementById('tabDisclaimerBtn');
+            const licenseContent = document.getElementById('licenseTabContent');
+            const disclaimerContent = document.getElementById('disclaimerTabContent');
+
+            if (tab === 'license') {
+                licenseBtn.className = "px-4 py-2 rounded-lg text-xs font-mono font-bold text-stasis-gold bg-stasis-card border border-stasis-gold/30";
+                disclaimerBtn.className = "px-4 py-2 rounded-lg text-xs font-mono text-stasis-textMuted hover:text-white";
+                licenseContent.classList.remove('hidden');
+                disclaimerContent.classList.add('hidden');
+            } else {
+                disclaimerBtn.className = "px-4 py-2 rounded-lg text-xs font-mono font-bold text-stasis-gold bg-stasis-card border border-stasis-gold/30";
+                licenseBtn.className = "px-4 py-2 rounded-lg text-xs font-mono text-stasis-textMuted hover:text-white";
+                disclaimerContent.classList.remove('hidden');
+                licenseContent.classList.add('hidden');
+            }
+        }
+
+        function copyActiveTabText() {
+            const contentId = currentActiveTab === 'license' ? 'licenseTabContent' : 'disclaimerTabContent';
+            const textToCopy = document.getElementById(contentId).innerText;
+            
+            const temp = document.createElement('textarea');
+            temp.value = textToCopy;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+
+            showToast(`Copied ${currentActiveTab.toUpperCase()} to clipboard!`);
+            runSimulator(`Copied ${currentActiveTab.toUpperCase()} text.`);
+        }
+
+        window.onload = function() {
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            animateChart();
+            updateCalculator();
+        };
+    </script>
+</body>
+</html>
